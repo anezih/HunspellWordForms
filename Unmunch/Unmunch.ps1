@@ -2,22 +2,49 @@
 
 [CmdletBinding()]
 param (
-    [string]
-    $DictionaryPath,
-    [bool]
-    $NoPFX = $false,
-    [bool]
-    $NoCross = $false,
-    [bool]
-    $Indented = $true,
-    [string]
-    $OutPath,
-    [string]
-    $BatchDirectory
+    [string]$DictionaryPath,
+    [switch]$NoPFX,
+    [switch]$NoCross,
+    [switch]$NoIndent,
+    [string]$OutPath,
+    [string]$BatchDirectory,
+    [switch]$Gzip,
+    [switch]$DeleteOriginalFile
 )
 
 Add-Type -AssemblyName $PSScriptRoot\HunspellWordForms.dll
 Add-Type -AssemblyName $PSScriptRoot\WeCantSpell.Hunspell.dll
+
+function gzip
+{
+    param
+    (
+        [string]$filePath,
+        [bool]$deleteOriginalFile = $false
+    )
+    try
+    {
+        $filePath = $filePath + ".json"
+        [System.IO.FileStream]$fs = [System.IO.File]::Open($filePath, [System.IO.FileMode]::Open)
+        [System.IO.FileStream]$outFs = [System.IO.File]::Create("$($filePath).gz")
+        [System.IO.Compression.GZipStream]$cfs = [System.IO.Compression.GZipStream]::new($outFs, [System.IO.Compression.CompressionLevel]::SmallestSize)
+        $fs.CopyTo($cfs)
+        Write-Host "+++ Compressed $(Split-Path $filePath -Leaf) to gzip format."
+    }
+    catch
+    {
+        <#Do this if a terminating exception happens#>
+    }
+    finally
+    {
+        $cfs.Dispose() ; $outFs.Dispose() ; $fs.Dispose()
+        if ($deleteOriginalFile)
+        {
+            Remove-Item -Path $filePath
+            Write-Host "--- Deleted $(Split-Path $filePath -Leaf)."
+        }
+    }
+}
 
 if (!($BatchDirectory -or $DictionaryPath))
 {
@@ -44,8 +71,15 @@ if ($BatchDirectory)
     {
         $dict = [WordForms]::new($dic.FullName)
         $dicFname = Split-Path $dic.FullName -LeafBase
-        $dict.SerializeToJson("$(Join-Path -Path $outPathName -ChildPath $dicFname)", $Indented, $NoPFX, $false, $NoCross)
+        $outFname = "$(Join-Path -Path $outPathName -ChildPath $dicFname)"
+        $dict.SerializeToJson($outFname, !$NoIndent, $NoPFX, $false, $NoCross)
         Write-Host "*** Unmunched $($dicFname).dic"
+
+        if ($Gzip)
+        {
+            gzip -filePath $outFname -deleteOriginalFile:$DeleteOriginalFile
+        }
+        Write-Host ""
     }
 }
 
@@ -58,8 +92,13 @@ elseif($DictionaryPath -and $OutPath)
     }
     $dict = [WordForms]::new($DictionaryPath)
     $dicFname = Split-Path $DictionaryPath -LeafBase
-    $dict.SerializeToJson("$($OutPath)", $Indented, $NoPFX, $false, $NoCross)
+    $dict.SerializeToJson("$($OutPath)", !$NoIndent, $NoPFX, $false, $NoCross)
     Write-Host "*** Unmunched $($dicFname).dic"
+
+    if ($Gzip)
+    {
+        gzip -filePath $OutPath -deleteOriginalFile:$DeleteOriginalFile
+    }
 }
 
 elseif($DictionaryPath)
@@ -71,6 +110,11 @@ elseif($DictionaryPath)
     }
     $dict = [WordForms]::new($DictionaryPath)
     $dicFname = Split-Path $DictionaryPath -LeafBase
-    $dict.SerializeToJson("$($dicFname)", $Indented, $NoPFX, $false, $NoCross)
+    $dict.SerializeToJson("$($dicFname)", !$NoIndent, $NoPFX, $false, $NoCross)
     Write-Host "*** Unmunched $($dicFname).dic"
+
+    if ($Gzip)
+    {
+        gzip -filePath $dicFname -deleteOriginalFile:$DeleteOriginalFile
+    }
 }
