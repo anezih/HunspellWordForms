@@ -28,7 +28,7 @@ public class WordForms
             {
                 return true;
             }
-            
+
             else return false;
         }
     }
@@ -57,6 +57,11 @@ public class WordForms
     public WordForms(string path)
     {
         this.dict = WordList.CreateFromFiles(path);
+    }
+
+    public WordForms(Stream dicStream, Stream affStream)
+    {
+        this.dict = WordList.CreateFromStreams(dicStream, affStream);
     }
 
     private bool AllowCross(AffixEntryOptions value)
@@ -189,7 +194,7 @@ public class WordForms
             if (!forms.IsEmpty())
             {
                 UnmunchedObj keyForms = new UnmunchedObj(w, forms);
-                yield return keyForms;   
+                yield return keyForms;
             }
         }
     }
@@ -235,7 +240,7 @@ public class WordForms
                 writer.WriteStringValue(cross);
             }
             writer.WriteEndArray();
-            
+
             writer.WriteEndObject();
             writer.WriteEndObject();
             writer.Flush();
