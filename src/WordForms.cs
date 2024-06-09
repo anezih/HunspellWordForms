@@ -8,6 +8,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using WeCantSpell.Hunspell;
 
+namespace HunspellWordForms;
+
 public class WordForms
 {
     public class WordFormsObj
