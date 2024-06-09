@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Threading.Tasks;
 using WeCantSpell.Hunspell;
 
 public class WordForms
@@ -59,9 +60,13 @@ public class WordForms
         this.dict = WordList.CreateFromFiles(path);
     }
 
-    public WordForms(Stream dicStream, Stream affStream)
+    private WordForms(){}
+
+    public async static Task<WordForms> CreateAsync(Stream dicStream, Stream affStream)
     {
-        this.dict = WordList.CreateFromStreams(dicStream, affStream);
+        WordForms wordForms = new();
+        wordForms.dict = await WordList.CreateFromStreamsAsync(dicStream, affStream);
+        return wordForms;
     }
 
     private bool AllowCross(AffixEntryOptions value)
